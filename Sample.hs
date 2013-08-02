@@ -51,7 +51,9 @@ sampleW' x size tbl g = U.generateM size $ \_ -> do
 
 -- | Perform a weighted sample.
 --
--- Warning: will take up a lot of memory for large populations.
+-- Note: unless a weighted sample is desired, use 'sampleU' instead.
+-- The two are similar in performance, but 'sampleW' will not handle
+-- samples from very large populations that well (see 'drawTable').
 sampleW :: U.Unbox e => U.Vector e
         -> Int
         -> Maybe (U.Vector Double)
