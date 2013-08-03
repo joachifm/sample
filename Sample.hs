@@ -1,7 +1,7 @@
 module Sample
-  ( drawTable
+  ( drawTableP
   , sampleT
-  , sampleW
+  , sampleP
   , sampleU
   ) where
 
@@ -25,12 +25,12 @@ import qualified Data.Vector.Unboxed as U
 -- probability of being drawn.
 --
 -- Warning: the table will take up a lot of memory for large populations.
-drawTable :: Int                     -- ^ Population size
-          -> Maybe (U.Vector Double) -- ^ Probability weights.
+drawTableP :: Int                     -- ^ Population size
+          -> Maybe (U.Vector Double)  -- ^ Probability weights.
           -> CondensedTableU Int
-drawTable n = tableFromProbabilities . U.zip (U.enumFromN 0 n)
+drawTableP n = tableFromProbabilities . U.zip (U.enumFromN 0 n)
             . fromMaybe (U.replicate n (1 / fromIntegral n))
-{-# INLINE drawTable #-}
+{-# INLINE drawTableP #-}
 
 ------------------------------------------------------------------------
 
@@ -56,13 +56,13 @@ sampleT x size tbl g = U.generateM size $ \_ -> do
 -- Note: unless a weighted sample is desired, use 'sampleU' instead.
 -- The two are similar in performance, but 'sampleW' will not handle
 -- samples from very large populations that well (see 'drawTable').
-sampleW :: U.Unbox e => U.Vector e
+sampleP :: U.Unbox e => U.Vector e
         -> Int
         -> Maybe (U.Vector Double)
         -> GenIO
         -> IO (U.Vector e)
-sampleW x size probs g = sampleT x size (drawTable (U.length x) probs) g
-{-# INLINE sampleW #-}
+sampleP x size probs g = sampleT x size (drawTableP (U.length x) probs) g
+{-# INLINE sampleP #-}
 
 ------------------------------------------------------------------------
 
