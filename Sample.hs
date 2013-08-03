@@ -30,6 +30,7 @@ drawTable :: Int                     -- ^ Population size
           -> CondensedTableU Int
 drawTable n = tableFromProbabilities . U.zip (U.enumFromN 0 n)
             . fromMaybe (U.replicate n (1 / fromIntegral n))
+{-# INLINE drawTable #-}
 
 ------------------------------------------------------------------------
 
