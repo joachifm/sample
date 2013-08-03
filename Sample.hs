@@ -46,6 +46,7 @@ sampleT :: U.Unbox e => U.Vector e
 sampleT x size tbl g = U.generateM size $ \_ -> do
   i <- genFromTable tbl g
   return $! (x `U.unsafeIndex` i)
+{-# INLINE sampleT #-}
 
 ------------------------------------------------------------------------
 
@@ -60,6 +61,7 @@ sampleW :: U.Unbox e => U.Vector e
         -> GenIO
         -> IO (U.Vector e)
 sampleW x size probs g = sampleT x size (drawTable (U.length x) probs) g
+{-# INLINE sampleW #-}
 
 ------------------------------------------------------------------------
 
@@ -73,3 +75,4 @@ sampleU x size g = U.generateM size $ \_ -> do
   return $! (x `U.unsafeIndex` i)
   where
     n = U.length x - 1
+{-# INLINE sampleU #-}
