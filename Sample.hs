@@ -1,6 +1,6 @@
 module Sample
   ( drawTable
-  , sampleW'
+  , sampleT
   , sampleW
   , sampleU
   ) where
@@ -33,17 +33,17 @@ drawTable n = tableFromProbabilities . U.zip (U.enumFromN 0 n)
 
 ------------------------------------------------------------------------
 
--- | Perform a sample using a pre-computed probability table.
+-- | Perform a sample using a pre-computed 'CondensedTable'.
 --
 -- This defintion is provided so that multiple samples may be
 -- drawn from the same table within a single session, possibly
 -- saving some work.
-sampleW' :: U.Unbox e => U.Vector e
+sampleT :: U.Unbox e => U.Vector e
          -> Int
          -> CondensedTableU Int
          -> GenIO
          -> IO (U.Vector e)
-sampleW' x size tbl g = U.generateM size $ \_ -> do
+sampleT x size tbl g = U.generateM size $ \_ -> do
   i <- genFromTable tbl g
   return $! (x `U.unsafeIndex` i)
 
@@ -59,7 +59,7 @@ sampleW :: U.Unbox e => U.Vector e
         -> Maybe (U.Vector Double)
         -> GenIO
         -> IO (U.Vector e)
-sampleW x size probs g = sampleW' x size (drawTable (U.length x) probs) g
+sampleW x size probs g = sampleT x size (drawTable (U.length x) probs) g
 
 ------------------------------------------------------------------------
 
