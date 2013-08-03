@@ -44,9 +44,11 @@ rnorm' n = variates n . uncurry normal . fromMaybe (0, 1)
 
 variates :: G.Vector v e => Int -> (GenIO -> IO e) -> GenIO -> IO (v e)
 variates n f g = G.generateM n (const $ f g)
+{-# INLINE variates #-}
 
 ------------------------------------------------------------------------
 
 variatesU :: U.Unbox e => Int -> (GenIO -> IO e) -> GenIO
           -> IO (U.Vector e)
 variatesU = variates
+{-# INLINE variatesU #-}
