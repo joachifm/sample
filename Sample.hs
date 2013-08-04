@@ -28,36 +28,36 @@ import qualified Data.Vector.Unboxed as U
 --
 -- If no weights are supplied, all indices are assigned equal weight.
 
-drawTable' :: (Num e, U.Unbox e, U.Unbox w)
-           => (U.Vector (e, w) -> CondensedTableU Int)
-           -> w
-           -> Int
-           -> Maybe (U.Vector w)
-           -> CondensedTableU Int
-drawTable' mk d n = mk . U.zip (U.enumFromN 0 n)
+drawTable :: (Num e, U.Unbox e, U.Unbox w)
+          => (U.Vector (e, w) -> CondensedTableU Int)
+          -> w
+          -> Int
+          -> Maybe (U.Vector w)
+          -> CondensedTableU Int
+drawTable mk d n = mk . U.zip (U.enumFromN 0 n)
                   . fromMaybe (U.replicate n d)
-{-# INLINE drawTable' #-}
+{-# INLINE drawTable #-}
 
 -- | Produce a 'CondensedTableU' for probability weighted sampling of
 -- population indices.
 drawTableP :: Int                     -- ^ Population size
           -> Maybe (U.Vector Double)  -- ^ Probability weights.
           -> CondensedTableU Int
-drawTableP n = drawTable' tableFromProbabilities (1/fromIntegral n) n
+drawTableP n = drawTable tableFromProbabilities (1/fromIntegral n) n
 {-# INLINE drawTableP #-}
 
 -- | Produce a 'CondensedTableU' for weighted sampling of population indices.
 drawTableW :: Int                     -- ^ Population size
           -> Maybe (U.Vector Double)  -- ^ Weights
           -> CondensedTableU Int
-drawTableW n = drawTable' tableFromWeights (1/fromIntegral n) n
+drawTableW n = drawTable tableFromWeights (1/fromIntegral n) n
 {-# INLINE drawTableW #-}
 
 -- | Produce a 'CondensedTableU' for weighted sampling of population indices.
 drawTableI :: Int                     -- ^ Population size
           -> Maybe (U.Vector Word32)  -- ^ Integer weights
           -> CondensedTableU Int
-drawTableI n = drawTable' tableFromIntWeights w n
+drawTableI n = drawTable tableFromIntWeights w n
   where w = fromIntegral $ (2^(32::Int)) `div` n
 {-# INLINE drawTableI #-}
 
