@@ -74,7 +74,7 @@ sampleT :: U.Unbox e => U.Vector e
          -> IO (U.Vector e)
 sampleT x size tbl g = U.generateM size $ \_ -> do
   i <- genFromTable tbl g
-  return $! (x `U.unsafeIndex` i)
+  U.unsafeIndexM x i
 {-# INLINE sampleT #-}
 
 ------------------------------------------------------------------------
@@ -124,7 +124,7 @@ sampleU :: U.Unbox e => U.Vector e
         -> IO (U.Vector e)
 sampleU x size g = U.generateM size $ \_ -> do
   i <- uniformR (0, n) g
-  return $! (x `U.unsafeIndex` i)
+  U.unsafeIndexM x i
   where
     n = U.length x - 1
 {-# INLINE sampleU #-}
