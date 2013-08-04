@@ -63,6 +63,18 @@ drawTableI n = drawTable' tableFromIntWeights w n
 
 ------------------------------------------------------------------------
 
+sample :: U.Unbox e => U.Vector e
+       -> Int
+       -> (GenIO -> IO Int)
+       -> GenIO
+       -> IO (U.Vector e)
+sample x size m g = U.generateM size $ \_ -> do
+  i <- m g
+  U.unsafeIndexM x i
+{-# INLINE sample #-}
+
+------------------------------------------------------------------------
+
 -- | Perform a sample using a pre-computed 'CondensedTable'.
 --
 -- @genFromTable tbl@ is assumed to return random indices into
@@ -72,9 +84,7 @@ sampleT :: U.Unbox e => U.Vector e
          -> CondensedTableU Int
          -> GenIO
          -> IO (U.Vector e)
-sampleT x size tbl g = U.generateM size $ \_ -> do
-  i <- genFromTable tbl g
-  U.unsafeIndexM x i
+sampleT x size tbl g = sample x size (genFromTable tbl) g
 {-# INLINE sampleT #-}
 
 ------------------------------------------------------------------------
@@ -122,9 +132,6 @@ sampleU :: U.Unbox e => U.Vector e
         -> Int
         -> GenIO
         -> IO (U.Vector e)
-sampleU x size g = U.generateM size $ \_ -> do
-  i <- uniformR (0, n) g
-  U.unsafeIndexM x i
-  where
-    n = U.length x - 1
+sampleU x size g = sample x size (uniformR (0, n)) g
+  where n = U.length x - 1
 {-# INLINE sampleU #-}
