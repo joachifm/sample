@@ -1,137 +1,111 @@
+{-# LANGUAGE FlexibleContexts #-}
+
+{-|
+Module : Sample
+
+Definitions for taking samples.
+
+Note that the following definitions are merely thin wrappers for
+"System.Random.MWC".
+-}
+
 module Sample
-  ( drawTableP
-  , drawTableW
-  , drawTableI
-  , sampleT
+  ( sample
+  , sampleU
   , sampleP
   , sampleW
   , sampleI
-  , sampleU
   ) where
 
-import Data.Maybe
 import Data.Word
 
 import System.Random.MWC
 import System.Random.MWC.CondensedTable
 
+import qualified Data.Vector.Generic as G
 import qualified Data.Vector.Unboxed as U
 
 ------------------------------------------------------------------------
--- $drawtable
+
+-- | A convenience wrapper for taking samples.
 --
--- For weighted sampling, we compute 'CondensedTableU'S for the
--- population indices.
+-- @sample x s m@ generates a vector of size @s@ by drawing @s@
+-- elements from @x@ using @m@, where @m@ is a function that generates
+-- indices into @x@.
 --
--- That is, @drawTable n w@ returns a 'CondensedU' table for
---- @0..n-1@ where @n@ is the population size and @w@ are the weights.
+-- Indices returned by @m@ are used without bounds checking.
 --
--- If no weights are supplied, all indices are assigned equal weight.
-
-drawTable :: (Num e, U.Unbox e, U.Unbox w)
-          => (U.Vector (e, w) -> CondensedTableU Int)
-          -> w
-          -> Int
-          -> Maybe (U.Vector w)
-          -> CondensedTableU Int
-drawTable mk d n = mk . U.zip (U.enumFromN 0 n)
-                  . fromMaybe (U.replicate n d)
-{-# INLINE drawTable #-}
-
--- | Produce a 'CondensedTableU' for probability weighted sampling of
--- population indices.
-drawTableP :: Int                     -- ^ Population size
-          -> Maybe (U.Vector Double)  -- ^ Probability weights.
-          -> CondensedTableU Int
-drawTableP n = drawTable tableFromProbabilities (1/fromIntegral n) n
-{-# INLINE drawTableP #-}
-
--- | Produce a 'CondensedTableU' for weighted sampling of population indices.
-drawTableW :: Int                     -- ^ Population size
-          -> Maybe (U.Vector Double)  -- ^ Weights
-          -> CondensedTableU Int
-drawTableW n = drawTable tableFromWeights (1/fromIntegral n) n
-{-# INLINE drawTableW #-}
-
--- | Produce a 'CondensedTableU' for weighted sampling of population indices.
-drawTableI :: Int                     -- ^ Population size
-          -> Maybe (U.Vector Word32)  -- ^ Integer weights
-          -> CondensedTableU Int
-drawTableI n = drawTable tableFromIntWeights w n
-  where w = fromIntegral $ (2^(32::Int)) `div` n
-{-# INLINE drawTableI #-}
-
-------------------------------------------------------------------------
-
-sample :: U.Unbox e => U.Vector e
-       -> Int
-       -> (GenIO -> IO Int)
-       -> GenIO
-       -> IO (U.Vector e)
-sample x size m g = U.generateM size $ \_ -> do
-  i <- m g
-  U.unsafeIndexM x i
+-- Taking an unweighted sample:
+--
+-- @
+--   sample x size (uniformR (0, U.length x - 1)) g
+-- @
+--
+-- Taking a probability weighted sample:
+--
+-- @
+--   let tbl = tableFromProbabilities (U.zip (U.fromEnumN 0 (U.length x)) probs)
+--   sample x size (genFromTable tbl) g
+-- @
+sample :: (G.Vector v e) => v e -- ^ Sample space
+       -> Int -- ^ Sample size
+       -> (GenIO -> IO Int) -- ^ Generate indices into sample space
+       -> GenIO -- ^ Random generator
+       -> IO (v e)
+sample x size m g = G.generateM size $ \_ -> (G.unsafeIndexM x =<< m g)
 {-# INLINE sample #-}
 
 ------------------------------------------------------------------------
 
--- | Perform a sample using a pre-computed 'CondensedTable'.
+-- | A convenience wrapper for unweighted samples.
 --
--- @genFromTable tbl@ is assumed to return random indices into
--- the supplied population vector @x@.
-sampleT :: U.Unbox e => U.Vector e
-         -> Int
-         -> CondensedTableU Int
-         -> GenIO
-         -> IO (U.Vector e)
-sampleT x size tbl g = sample x size (genFromTable tbl) g
+-- Note that if @x@ is a range @l..u@, then @sampleU x s g@ is
+-- equivalent to @G.generateM size $ \_ -> uniformR (l, u) g@
+sampleU :: G.Vector v e => v e -> Int -> GenIO -> IO (v e)
+sampleU x size g = sample x size (uniformR (0, G.length x - 1)) g
+{-# INLINE[0] sampleU #-}
+
+{-# RULES
+"sampleU/range" forall a b size g. sampleU (G.enumFromN a b) size g = G.generateM size (\_ -> uniformR (a, b) g)
+  #-}
+
+------------------------------------------------------------------------
+
+sampleT :: (U.Unbox w, G.Vector v e)
+        => (U.Vector (Int, w) -> CondensedTableU Int)
+        -> v e -> Int -> U.Vector w -> GenIO -> IO (v e)
+sampleT m x size ws g = sample x size (genFromTable tbl) g
+  where tbl = m (U.zip (U.enumFromN 0 (G.length x)) ws)
 {-# INLINE sampleT #-}
 
 ------------------------------------------------------------------------
+-- $weightedsample
+--
+-- Convenience wrappers for doing weighted sampling.
+--
+-- It may be preferable to do
+--
+-- @
+--   let tbl = tableFromProbabilities (U.zip (U.enumFromN 0 (U.length x)) ws)
+--   sample x size (genFromTable tbl) g
+-- @
+-- because then the table can be re-used for subsequent samples within the same
+-- session.
 
-sampleW' :: U.Unbox e => U.Vector e
-         -> Int
-         -> w
-         -> (Int -> w -> CondensedTableU Int)
-         -> GenIO
-         -> IO (U.Vector e)
-sampleW' x size ws mkTable g = sampleT x size (mkTable (U.length x) ws) g
-{-# INLINE sampleW' #-}
-
--- | Perform a sample using probability weights.
-sampleP :: U.Unbox e => U.Vector e
-        -> Int
-        -> Maybe (U.Vector Double)
-        -> GenIO
-        -> IO (U.Vector e)
-sampleP x size probs g = sampleW' x size probs drawTableP g
+-- | Probability weighted sampling.
+sampleP :: G.Vector v e => v e -> Int -> U.Vector Double -> GenIO
+        -> IO (v e)
+sampleP x size probs g = sampleT tableFromProbabilities x size probs g
 {-# INLINE sampleP #-}
 
--- | Perform a sample using weights.
-sampleW :: U.Unbox e => U.Vector e
-        -> Int
-        -> Maybe (U.Vector Double)
-        -> GenIO
-        -> IO (U.Vector e)
-sampleW x size ws g = sampleW' x size ws drawTableW g
+-- | Weighted sampling.
+sampleW :: G.Vector v e => v e -> Int -> U.Vector Double -> GenIO
+        -> IO (v e)
+sampleW x size probs g = sampleT tableFromWeights x size probs g
 {-# INLINE sampleW #-}
 
--- | Perform a sample using integer weights.
-sampleI :: U.Unbox e => U.Vector e
-        -> Int
-        -> Maybe (U.Vector Word32)
-        -> GenIO
-        -> IO (U.Vector e)
-sampleI x size ws g = sampleW' x size ws drawTableI g
+-- | Sampling with integer weights.
+sampleI :: G.Vector v e => v e -> Int -> U.Vector Word32 -> GenIO
+        -> IO (v e)
+sampleI x size probs g = sampleT tableFromIntWeights x size probs g
 {-# INLINE sampleI #-}
-
-------------------------------------------------------------------------
-
--- | Perform an unweighted sample.
-sampleU :: U.Unbox e => U.Vector e
-        -> Int
-        -> GenIO
-        -> IO (U.Vector e)
-sampleU x size g = sample x size (uniformR (0, n)) g
-  where n = U.length x - 1
-{-# INLINE sampleU #-}
