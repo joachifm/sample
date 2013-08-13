@@ -3,15 +3,20 @@
 {-|
 Module : Sample
 
-Definitions for taking samples.
+Definitions for taking samples, modelled after the API in GNU R.
 
-Note that the following definitions are merely thin wrappers for
-"System.Random.MWC".
+Note that the following definitions are merely thin wrappers over
+"System.Random.MWC", intended for interactive use.
 -}
 
 module Sample
-  ( sample
+  (
+    -- * General sampling interface
+    sample
+    -- * Unweighted sampling
   , sampleU
+    -- * Weighted sampling
+    -- $weightedsample
   , sampleP
   , sampleW
   , sampleI
@@ -59,8 +64,11 @@ sample x size m g = G.generateM size $ \_ -> (G.unsafeIndexM x =<< m g)
 
 -- | A convenience wrapper for unweighted samples.
 --
--- Note that if @x@ is a range @l..u@, then @sampleU x s g@ is
--- equivalent to @G.generateM size $ \_ -> uniformR (l, u) g@
+-- Note that if @x@ is a range @[l..u]@, then
+--
+-- @
+--   sampleU x s g = G.generateM s (\\_ -> uniformR (l, u) g)
+-- @
 sampleU :: G.Vector v e => v e -> Int -> GenIO -> IO (v e)
 sampleU x size g = sample x size (uniformR (0, G.length x - 1)) g
 {-# INLINE[0] sampleU #-}
@@ -89,6 +97,7 @@ sampleT m x size ws g = sample x size (genFromTable tbl) g
 --   let tbl = tableFromProbabilities (U.zip (U.enumFromN 0 (U.length x)) ws)
 --   sample x size (genFromTable tbl) g
 -- @
+--
 -- because then the table can be re-used for subsequent samples within the same
 -- session.
 
