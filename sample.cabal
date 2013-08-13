@@ -6,6 +6,9 @@ description:
   generating random vectors, implemented as thin wrappers
   around "System.MWC.Random".
 
+license: MIT
+license-file: COPYING
+
 cabal-version: >= 1.6
 build-type: Simple
 
