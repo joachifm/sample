@@ -1,3 +1,14 @@
+{-|
+Module : Variates
+
+Thin wrappers over "System.Random.MWC" for generating
+random vectors, modelled after the API in GNU R.
+
+These definitions serve no purpose other than to possibly
+save a few keystrokes when used interactively, compared to
+using "System.Random.MWC" directly.
+-}
+
 module Variates
   ( variates
   , variatesU
