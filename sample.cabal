@@ -1,0 +1,21 @@
+name: sample
+version: 0.0.0.0
+synopsis: Convenient sampling
+description:
+  A library of convenient functions for sampling and
+  generating random vectors, implemented as thin wrappers
+  around "System.MWC.Random".
+
+license: MIT
+license-file: COPYING
+
+cabal-version: >= 1.6
+build-type: Simple
+
+library
+  hs-source-dirs: src
+
+  build-depends:
+      base
+    , mwc-random
+    , vector
