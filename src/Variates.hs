@@ -39,11 +39,13 @@ rbinom n siz prob = variates n $ genFromTable (tableBinomial siz prob)
 
 ------------------------------------------------------------------------
 
-runif :: Int -> Gen s -> ST s (U.Vector Double)
-runif n = runif' n Nothing
+runif :: (U.Unbox e, Bounded e, Variate e) => Int -> Gen s
+      -> ST s (U.Vector e)
+runif n = runif' n (minBound, maxBound)
 
-runif' :: Int -> Maybe (Double, Double) -> Gen s -> ST s (U.Vector Double)
-runif' n = variates n . uniformR . fromMaybe (0, 1)
+runif' :: (U.Unbox e, Variate e) => Int -> (e, e) -> Gen s
+       -> ST s (U.Vector e)
+runif' n = variates n . uniformR
 
 ------------------------------------------------------------------------
 
