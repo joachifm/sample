@@ -24,6 +24,8 @@ module Sample
 
 import Data.Word
 
+import Control.Monad.ST (ST)
+
 import System.Random.MWC
 import System.Random.MWC.CondensedTable
 
@@ -54,9 +56,9 @@ import qualified Data.Vector.Unboxed as U
 -- @
 sample :: (G.Vector v e) => v e -- ^ Sample space
        -> Int -- ^ Sample size
-       -> (GenIO -> IO Int) -- ^ Generate indices into sample space
-       -> GenIO -- ^ Random generator
-       -> IO (v e)
+       -> (Gen s -> ST s Int) -- ^ Generate indices into sample space
+       -> Gen s -- ^ Random generator
+       -> ST s (v e)
 sample x size m g = G.generateM size $ \_ -> (G.unsafeIndexM x =<< m g)
 {-# INLINE sample #-}
 
@@ -69,7 +71,7 @@ sample x size m g = G.generateM size $ \_ -> (G.unsafeIndexM x =<< m g)
 -- @
 --   sampleU x s g = G.generateM s (\\_ -> uniformR (l, u) g)
 -- @
-sampleU :: G.Vector v e => v e -> Int -> GenIO -> IO (v e)
+sampleU :: G.Vector v e => v e -> Int -> Gen s -> ST s (v e)
 sampleU x size g = sample x size (uniformR (0, G.length x - 1)) g
 {-# INLINE[0] sampleU #-}
 
@@ -81,7 +83,7 @@ sampleU x size g = sample x size (uniformR (0, G.length x - 1)) g
 
 sampleT :: (U.Unbox w, G.Vector v e)
         => (U.Vector (Int, w) -> CondensedTableU Int)
-        -> v e -> Int -> U.Vector w -> GenIO -> IO (v e)
+        -> v e -> Int -> U.Vector w -> Gen s -> ST s (v e)
 sampleT m x size ws g = sample x size (genFromTable tbl) g
   where tbl = m (U.zip (U.enumFromN 0 (G.length x)) ws)
 {-# INLINE sampleT #-}
@@ -102,19 +104,19 @@ sampleT m x size ws g = sample x size (genFromTable tbl) g
 -- session.
 
 -- | Probability weighted sampling.
-sampleP :: G.Vector v e => v e -> Int -> U.Vector Double -> GenIO
-        -> IO (v e)
+sampleP :: G.Vector v e => v e -> Int -> U.Vector Double -> Gen s
+        -> ST s (v e)
 sampleP x size probs g = sampleT tableFromProbabilities x size probs g
 {-# INLINE sampleP #-}
 
 -- | Weighted sampling.
-sampleW :: G.Vector v e => v e -> Int -> U.Vector Double -> GenIO
-        -> IO (v e)
+sampleW :: G.Vector v e => v e -> Int -> U.Vector Double -> Gen s
+        -> ST s (v e)
 sampleW x size probs g = sampleT tableFromWeights x size probs g
 {-# INLINE sampleW #-}
 
 -- | Sampling with integer weights.
-sampleI :: G.Vector v e => v e -> Int -> U.Vector Word32 -> GenIO
-        -> IO (v e)
+sampleI :: G.Vector v e => v e -> Int -> U.Vector Word32 -> Gen s
+        -> ST s (v e)
 sampleI x size probs g = sampleT tableFromIntWeights x size probs g
 {-# INLINE sampleI #-}
