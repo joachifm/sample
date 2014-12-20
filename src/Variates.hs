@@ -19,7 +19,7 @@ module Variates
 
 import Data.Maybe (fromMaybe)
 
-import Control.Monad.ST (ST)
+import Control.Monad.Primitive
 
 import System.Random.MWC
 import System.Random.MWC.CondensedTable
@@ -30,41 +30,45 @@ import qualified Data.Vector.Unboxed as U
 
 ------------------------------------------------------------------------
 
-rbinom :: Int    -- ^ Number of obs.
+rbinom :: (PrimMonad m) => Int    -- ^ Number of obs.
        -> Int    -- ^ Number of trials
        -> Double -- ^ Probability of success
-       -> Gen s
-       -> ST s (U.Vector Int)
+       -> Gen (PrimState m)
+       -> m (U.Vector Int)
 rbinom n siz prob = variates n $ genFromTable (tableBinomial siz prob)
 
 ------------------------------------------------------------------------
 
-runif :: (U.Unbox e, Bounded e, Variate e) => Int -> Gen s
-      -> ST s (U.Vector e)
+runif :: (U.Unbox e, Bounded e, Variate e, PrimMonad m) => Int
+      -> Gen (PrimState m) -> m (U.Vector e)
 runif n = runif' n (minBound, maxBound)
 
-runif' :: (U.Unbox e, Variate e) => Int -> (e, e) -> Gen s
-       -> ST s (U.Vector e)
+runif' :: (U.Unbox e, Variate e, PrimMonad m) => Int -> (e, e)
+       -> Gen (PrimState m)
+       -> m (U.Vector e)
 runif' n = variates n . uniformR
 
 ------------------------------------------------------------------------
 
-rnorm :: Int -> Gen s -> ST s (U.Vector Double)
+rnorm :: (PrimMonad m) => Int -> Gen (PrimState m)
+      -> m (U.Vector Double)
 rnorm n = rnorm' n Nothing
 
-rnorm' :: Int -> Maybe (Double, Double) -> Gen s -> ST s (U.Vector Double)
+rnorm' :: (PrimMonad m) => Int -> Maybe (Double, Double)
+       -> Gen (PrimState m) -> m (U.Vector Double)
 rnorm' n = variates n . uncurry normal . fromMaybe (0, 1)
 
 ------------------------------------------------------------------------
 
-variates :: G.Vector v e => Int -> (Gen s -> ST s e) -> Gen s
-         -> ST s (v e)
+variates :: (G.Vector v e, PrimMonad m) => Int
+         -> (Gen (PrimState m) -> m e) -> Gen (PrimState m) -> m (v e)
 variates n f g = G.generateM n (const $ f g)
 {-# INLINE variates #-}
 
 ------------------------------------------------------------------------
 
-variatesU :: U.Unbox e => Int -> (Gen s -> ST s e) -> Gen s
-          -> ST s (U.Vector e)
+variatesU :: (U.Unbox e, PrimMonad m) => Int
+          -> (Gen (PrimState m) -> m e) -> Gen (PrimState m)
+          -> m (U.Vector e)
 variatesU = variates
 {-# INLINE variatesU #-}
