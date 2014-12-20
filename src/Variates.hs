@@ -39,9 +39,8 @@ rbinom n siz prob = variates n $ genFromTable (tableBinomial siz prob)
 
 ------------------------------------------------------------------------
 
-runif :: (U.Unbox e, Bounded e, Variate e, PrimMonad m) => Int
-      -> Gen (PrimState m) -> m (U.Vector e)
-runif n = runif' n (minBound, maxBound)
+runif :: (PrimMonad m) => Int -> Gen (PrimState m) -> m (U.Vector Double)
+runif n = runif' n (0, 1)
 
 runif' :: (U.Unbox e, Variate e, PrimMonad m) => Int -> (e, e)
        -> Gen (PrimState m)
